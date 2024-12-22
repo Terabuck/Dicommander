@@ -36,7 +36,6 @@ function showImage(src) {
 
 let isDrawing = false;
 let startX, startY;
-let rectX, rectY, rectWidth, rectHeight;
 
 const cropCanvas = document.getElementById('crop-canvas');
 const ctx = cropCanvas.getContext('2d');
@@ -52,19 +51,22 @@ cropCanvas.addEventListener('mousemove', function(event) {
         const currentX = event.offsetX;
         const currentY = event.offsetY;
         ctx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
-        rectX = Math.min(startX, currentX);
-        rectY = Math.min(startY, currentY);
-        rectWidth = Math.abs(currentX - startX);
-        rectHeight = Math.abs(currentY - startY);
-        ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+        ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
     }
 });
 
 cropCanvas.addEventListener('mouseup', function(event) {
     if (isDrawing) {
         isDrawing = false;
+        const endX = event.offsetX;
+        const endY = event.offsetY;
+        const rectX = Math.min(startX, endX);
+        const rectY = Math.min(startY, endY);
+        const rectWidth = Math.abs(endX - startX);
+        const rectHeight = Math.abs(endY - startY);
         console.log(`Selected area: (${rectX}, ${rectY}) to (${rectX + rectWidth}, ${rectY + rectHeight})`);
         previewCrop(rectX, rectY, rectWidth, rectHeight);
+        cropImage(rectX, rectY, rectWidth, rectHeight);
     }
 });
 
@@ -81,7 +83,7 @@ function previewCrop(x, y, width, height) {
     }
 }
 
-function cropImage() {
+function cropImage(x, y, width, height) {
     const selectedImage = document.getElementById('selected-image');
     const filename = selectedImage.src.split('/').pop();
     const originalWidth = 2736; // Ancho original de la imagen DICOM
@@ -90,10 +92,10 @@ function cropImage() {
     const thumbnailHeight = selectedImage.naturalHeight;
 
     // Escalar las coordenadas del área de recorte
-    const scaledX = Math.round(rectX * originalWidth / thumbnailWidth);
-    const scaledY = Math.round(rectY * originalHeight / thumbnailHeight);
-    const scaledWidth = Math.round(rectWidth * originalWidth / thumbnailWidth);
-    const scaledHeight = Math.round(rectHeight * originalHeight / thumbnailHeight);
+    const scaledX = Math.round(x * originalWidth / thumbnailWidth);
+    const scaledY = Math.round(y * originalHeight / thumbnailHeight);
+    const scaledWidth = Math.round(width * originalWidth / thumbnailWidth);
+    const scaledHeight = Math.round(height * originalHeight / thumbnailHeight);
 
     console.log(`Scaled area: (${scaledX}, ${scaledY}) to (${scaledX + scaledWidth}, ${scaledY + scaledHeight})`);
 
@@ -124,4 +126,8 @@ function cropImage() {
     });
 }
 
-document.getElementById('center-image-button').addEventListener('click', cropImage);
+function centerImage() {
+    const selectedImage = document.getElementById('selected-image');
+    // Aquí puedes añadir la lógica para centrar la imagen
+    console.log('Centrar imagen:', selectedImage.src);
+}

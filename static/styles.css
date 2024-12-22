@@ -4,28 +4,14 @@ body {
 
 .thumbnails {
     display: flex;
-    flex-direction: column;
-    gap: 10px; /* Espacio entre los pares de imágenes */
-}
-
-.thumbnail-pair {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px; /* Espacio entre L-CC y R-MLO */
+    flex-wrap: wrap;
 }
 
 .thumbnail-container {
+    margin: 0; /* Eliminar el margen entre las imágenes */
     border: 1px solid #ccc;
     padding: 10px;
     text-align: center;
-}
-
-.thumbnail-container.left {
-    justify-content: flex-start;
-}
-
-.thumbnail-container.right {
-    justify-content: flex-end;
 }
 
 .thumbnail {

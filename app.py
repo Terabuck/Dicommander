@@ -47,13 +47,14 @@ def crop_dicom_image(dicom_path, x, y, width, height):
         ds.PixelData = cropped_pixel_array.tobytes()
         ds.Rows, ds.Columns = cropped_pixel_array.shape
         
-        # Sobrescribir la imagen DICOM original con la recortada
-        ds.save_as(dicom_path)
+        # Guardar la imagen DICOM recortada
+        cropped_dicom_path = dicom_path.replace('.dcm', '_cropped.dcm')
+        ds.save_as(cropped_dicom_path)
         
         # Generar un nuevo thumbnail
-        dicom_to_thumbnail(dicom_path)
+        dicom_to_thumbnail(cropped_dicom_path)
         
-        return dicom_path
+        return cropped_dicom_path
     except Exception as e:
         print(f"Error cropping DICOM image: {e}")
         return None
