@@ -18,6 +18,7 @@
         <label><input type="radio" name="crop-mode" value="polygon"> Polígono</label>
     </div>
     <div class="thumbnails">
+        <h2>Mammography DICOM Images</h2>
         <div class="thumbnail-pair">
             {% for thumbnail in thumbnails if thumbnail.formatted_tags == 'R-CC' %}
                 <div class="thumbnail-container right">
@@ -46,6 +47,15 @@
                 </div>
             {% endfor %}
         </div>
+    </div>
+    <div class="thumbnails">
+        <h2>Non-Mammography DICOM Images</h2>
+        {% for thumbnail in thumbnails if thumbnail.formatted_tags == 'Unknown' %}
+            <div class="thumbnail-container">
+                <img src="{{ url_for('uploaded_file', filename=thumbnail.filename) }}" alt="DICOM Thumbnail" class="thumbnail" onclick="showImage('{{ url_for('uploaded_file', filename=thumbnail.filename) }}')">
+                <p>{{ thumbnail.formatted_tags }}</p>
+            </div>
+        {% endfor %}
     </div>
     <div id="selected-image-container">
         <img id="selected-image" src="" alt="Selected Image">

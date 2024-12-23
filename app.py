@@ -37,6 +37,8 @@ def get_dicom_tags(dicom_path):
     return laterality, view_position
 
 def format_dicom_tags(laterality, view_position):
+    if laterality == 'Unknown' or view_position == 'Unknown':
+        return 'Unknown'
     return f"{laterality}-{view_position}"
 
 def crop_dicom_image(dicom_path, x, y, width, height):
