@@ -7,13 +7,30 @@ import numpy as np
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads/'
 
+def apply_window_level(pixel_array, window_center, window_width):
+    min_val = window_center - (window_width / 2)
+    max_val = window_center + (window_width / 2)
+    pixel_array = np.clip(pixel_array, min_val, max_val)
+    pixel_array = (pixel_array - min_val) / (max_val - min_val) * 255
+    return pixel_array.astype(np.uint8)
+
 def dicom_to_thumbnail(dicom_path):
     ds = pydicom.dcmread(dicom_path)
     pixel_array = ds.pixel_array
     
-    # Normalizar los valores de píxeles a 8 bits
-    pixel_array = (pixel_array / pixel_array.max()) * 255
-    pixel_array = pixel_array.astype(np.uint8)
+    # Apply window width and window level
+    window_center = ds.WindowCenter if 'WindowCenter' in ds else np.mean(pixel_array)
+    window_width = ds.WindowWidth if 'WindowWidth' in ds else np.max(pixel_array) - np.min(pixel_array)
+    if isinstance(window_center, pydicom.multival.MultiValue):
+        window_center = window_center[0]
+    if isinstance(window_width, pydicom.multival.MultiValue):
+        window_width = window_width[0]
+    pixel_array = apply_window_level(pixel_array, window_center, window_width)
+    
+    # Check if the image is inverted
+    is_inverted = np.mean(pixel_array) > 127
+    if is_inverted:
+        pixel_array = 255 - pixel_array
     
     image = Image.fromarray(pixel_array)
     
@@ -24,7 +41,7 @@ def dicom_to_thumbnail(dicom_path):
     thumbnail_path = os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(dicom_path).replace('.dcm', '.jpg'))
     image.thumbnail((200, 200))
     image.save(thumbnail_path)
-    return thumbnail_path
+    return thumbnail_path, is_inverted
 
 def get_dicom_tags(dicom_path):
     ds = pydicom.dcmread(dicom_path)
@@ -81,11 +98,20 @@ def crop_dicom_polygon(dicom_path, points):
         
         # Create a mask for the polygon
         mask = Image.new('L', (ds.Columns, ds.Rows), 0)
-        ImageDraw.Draw(mask).polygon(points, outline=1, fill=1)
+        ImageDraw.Draw(mask).polygon(points, outline=0, fill=1)
         mask = np.array(mask)
         
         # Apply the mask to the pixel array
         pixel_array[mask == 0] = 0
+        
+        # Check if the image is inverted
+        is_inverted = np.mean(pixel_array) > 127
+        
+        # Fill the area outside the polygon with black or white based on the inversion flag
+        if is_inverted:
+            pixel_array[mask == 0] = 255
+        else:
+            pixel_array[mask == 0] = 0
         
         # Update the pixel array in the DICOM dataset
         ds.PixelData = pixel_array.tobytes()
