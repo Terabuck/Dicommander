@@ -13,18 +13,44 @@
         <input type="file" id="folder-input" name="folder" webkitdirectory directory title="Seleccionar carpeta" placeholder="Seleccionar carpeta">
         <button type="submit">Subir Archivos</button>
     </form>
+    <div>
+        <label><input type="radio" name="crop-mode" value="rectangle" checked> Rectángulo</label>
+        <label><input type="radio" name="crop-mode" value="polygon"> Polígono</label>
+    </div>
     <div class="thumbnails">
-        {% for thumbnail in thumbnails %}
-            <div class="thumbnail-container">
-                <img src="{{ url_for('uploaded_file', filename=thumbnail.filename) }}" alt="DICOM Thumbnail" class="thumbnail" onclick="showImage('{{ url_for('uploaded_file', filename=thumbnail.filename) }}')">
-                <p>{{ thumbnail.formatted_tags }}</p>
-            </div>
-        {% endfor %}
+        <div class="thumbnail-pair">
+            {% for thumbnail in thumbnails if thumbnail.formatted_tags == 'R-CC' %}
+                <div class="thumbnail-container right">
+                    <img src="{{ url_for('uploaded_file', filename=thumbnail.filename) }}" alt="DICOM Thumbnail" class="thumbnail" onclick="showImage('{{ url_for('uploaded_file', filename=thumbnail.filename) }}')">
+                    <p>{{ thumbnail.formatted_tags }}</p>
+                </div>
+            {% endfor %}
+            {% for thumbnail in thumbnails if thumbnail.formatted_tags == 'L-CC' %}
+                <div class="thumbnail-container left">
+                    <img src="{{ url_for('uploaded_file', filename=thumbnail.filename) }}" alt="DICOM Thumbnail" class="thumbnail" onclick="showImage('{{ url_for('uploaded_file', filename=thumbnail.filename) }}')">
+                    <p>{{ thumbnail.formatted_tags }}</p>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="thumbnail-pair">
+            {% for thumbnail in thumbnails if thumbnail.formatted_tags == 'R-MLO' %}
+                <div class="thumbnail-container right">
+                    <img src="{{ url_for('uploaded_file', filename=thumbnail.filename) }}" alt="DICOM Thumbnail" class="thumbnail" onclick="showImage('{{ url_for('uploaded_file', filename=thumbnail.filename) }}')">
+                    <p>{{ thumbnail.formatted_tags }}</p>
+                </div>
+            {% endfor %}
+            {% for thumbnail in thumbnails if thumbnail.formatted_tags == 'L-MLO' %}
+                <div class="thumbnail-container left">
+                    <img src="{{ url_for('uploaded_file', filename=thumbnail.filename) }}" alt="DICOM Thumbnail" class="thumbnail" onclick="showImage('{{ url_for('uploaded_file', filename=thumbnail.filename) }}')">
+                    <p>{{ thumbnail.formatted_tags }}</p>
+                </div>
+            {% endfor %}
+        </div>
     </div>
     <div id="selected-image-container">
         <img id="selected-image" src="" alt="Selected Image">
         <canvas id="crop-canvas"></canvas>
-        <button id="center-image-button" onclick="centerImage()">Centrar Imagen</button>
+        <button id="center-image-button">Centrar Imagen</button>
     </div>
     <div id="preview-container">
         <h2>Previsualización del Recorte</h2>

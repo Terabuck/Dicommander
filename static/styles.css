@@ -4,14 +4,28 @@ body {
 
 .thumbnails {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 10px; /* Espacio entre los pares de imágenes */
+}
+
+.thumbnail-pair {
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* Espacio entre L-CC y R-MLO */
 }
 
 .thumbnail-container {
-    margin: 0; /* Eliminar el margen entre las imágenes */
     border: 1px solid #ccc;
     padding: 10px;
     text-align: center;
+}
+
+.thumbnail-container.left {
+    order: 2;
+}
+
+.thumbnail-container.right {
+    order: 1;
 }
 
 .thumbnail {

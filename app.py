@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify
 import os
 import pydicom
-from PIL import Image
+from PIL import Image, ImageDraw
 import numpy as np
 
 app = Flask(__name__)
@@ -28,8 +28,12 @@ def dicom_to_thumbnail(dicom_path):
 
 def get_dicom_tags(dicom_path):
     ds = pydicom.dcmread(dicom_path)
-    laterality = ds.get((0x0020, 0x0062), 'Unknown').value
-    view_position = ds.get((0x0018, 0x5101), 'Unknown').value
+    laterality = ds.get((0x0020, 0x0062), 'Unknown')
+    view_position = ds.get((0x0018, 0x5101), 'Unknown')
+    if isinstance(laterality, pydicom.dataelem.DataElement):
+        laterality = laterality.value
+    if isinstance(view_position, pydicom.dataelem.DataElement):
+        view_position = view_position.value
     return laterality, view_position
 
 def format_dicom_tags(laterality, view_position):
@@ -39,6 +43,12 @@ def crop_dicom_image(dicom_path, x, y, width, height):
     try:
         ds = pydicom.dcmread(dicom_path)
         pixel_array = ds.pixel_array
+        
+        # Ensure coordinates are within valid range
+        x = max(0, x)
+        y = max(0, y)
+        width = min(ds.Columns - x, width)
+        height = min(ds.Rows - y, height)
         
         # Aplicar el recorte
         cropped_pixel_array = pixel_array[y:y+height, x:x+width]
@@ -59,9 +69,47 @@ def crop_dicom_image(dicom_path, x, y, width, height):
         print(f"Error cropping DICOM image: {e}")
         return None
 
+def crop_dicom_polygon(dicom_path, points):
+    try:
+        ds = pydicom.dcmread(dicom_path)
+        pixel_array = ds.pixel_array
+        
+        # Ensure coordinates are tuples and handle negative coordinates
+        points = [(max(0, int(point['x'])), max(0, int(point['y']))) for point in points]
+        
+        # Create a mask for the polygon
+        mask = Image.new('L', (ds.Columns, ds.Rows), 0)
+        ImageDraw.Draw(mask).polygon(points, outline=1, fill=1)
+        mask = np.array(mask)
+        
+        # Apply the mask to the pixel array
+        pixel_array[mask == 0] = 0
+        
+        # Update the pixel array in the DICOM dataset
+        ds.PixelData = pixel_array.tobytes()
+        
+        # Guardar la imagen DICOM recortada
+        cropped_dicom_path = dicom_path.replace('.dcm', '_cropped.dcm')
+        ds.save_as(cropped_dicom_path)
+        
+        # Generar un nuevo thumbnail
+        dicom_to_thumbnail(cropped_dicom_path)
+        
+        return cropped_dicom_path
+    except Exception as e:
+        print(f"Error cropping DICOM image: {e}")
+        return None
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/dicom-dimensions')
+def dicom_dimensions():
+    filename = request.args.get('filename')
+    dicom_path = os.path.join(app.config['UPLOAD_FOLDER'], filename.replace('.jpg', '.dcm'))
+    ds = pydicom.dcmread(dicom_path)
+    return jsonify({'width': ds.Columns, 'height': ds.Rows})
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -104,12 +152,17 @@ def crop():
         data = request.json
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], data['filename'])
         dicom_path = image_path.replace('.jpg', '.dcm')
-        x = data['x']
-        y = data['y']
-        width = data['width']
-        height = data['height']
-        print(f"Cropping image: {dicom_path} at ({x}, {y}, {width}, {height})")
-        cropped_dicom_path = crop_dicom_image(dicom_path, x, y, width, height)
+        if 'points' in data:
+            points = data['points']
+            print(f"Cropping image with polygon: {points}")
+            cropped_dicom_path = crop_dicom_polygon(dicom_path, points)
+        else:
+            x = data['x']
+            y = data['y']
+            width = data['width']
+            height = data['height']
+            print(f"Cropping image: {dicom_path} at ({x}, {y}, {width}, {height})")
+            cropped_dicom_path = crop_dicom_image(dicom_path, x, y, width, height)
         if cropped_dicom_path:
             cropped_image_path = cropped_dicom_path.replace('.dcm', '.jpg')
             return jsonify({'cropped_image_path': cropped_image_path})
