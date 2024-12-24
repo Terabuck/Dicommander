@@ -24,6 +24,30 @@ document.getElementById('upload-form').addEventListener('submit', function(event
     });
 });
 
+document.getElementById('start-over-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    if (confirm('Are you sure you want to delete all files?')) {
+        fetch('/start-over', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to delete files.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting files.');
+        });
+    }
+});
+
 function showImage(src) {
     const selectedImage = document.getElementById('selected-image');
     selectedImage.src = src;
@@ -126,7 +150,7 @@ function cropImage() {
 
     fetchDicomDimensions(filename).then(() => {
         if (cropMode === 'rectangle') {
-            // Escalar las coordenadas del área de recorte
+            // Scale the coordinates of the crop area
             const scaledX = Math.max(0, Math.round(rectX * dicomWidth / selectedImage.width));
             const scaledY = Math.max(0, Math.round(rectY * dicomHeight / selectedImage.height));
             const scaledWidth = Math.min(dicomWidth - scaledX, Math.round(rectWidth * dicomWidth / selectedImage.width));
@@ -160,7 +184,7 @@ function cropImage() {
                 console.error('Error:', error);
             });
         } else if (cropMode === 'polygon') {
-            // Escalar los puntos del polígono
+            // Scale the polygon points
             const scaledPoints = polygonPoints.map(point => ({
                 x: Math.max(0, Math.round(point.x * dicomWidth / selectedImage.width)),
                 y: Math.max(0, Math.round(point.y * dicomHeight / selectedImage.height))
